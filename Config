@@ -56,5 +56,15 @@ package.Aws-codedeploy-agent = {
             RubyGem-activesupport = 3.2;
         };
     };
+
+    resolves-conflict-dependencies = {
+        1.0 = {
+            Ruby = 1.9;
+            RubyGems = built_in_to_ruby19;
+            RubyGem-rake = built_in_to_ruby19;
+            RubyGem-multi_json = 1.7.x;
+        };
+    };
+
     targets = { ruby = { type=ruby; }; };
 };
