@@ -24,7 +24,6 @@ package.Aws-codedeploy-agent = {
             BrazilGem = 1.1;
             BrazilRake = 1.1;
             Ruby19 = 1.0;
-            Ruby21x = 1.0;
             RubyGems = built_in_to_ruby19;
         };
     };
@@ -58,11 +57,12 @@ package.Aws-codedeploy-agent = {
     };
 
     resolves-conflict-dependencies = {
-        1.0 = {
+        0.1 = {
             Ruby = 1.9;
             RubyGems = built_in_to_ruby19;
             RubyGem-rake = built_in_to_ruby19;
             RubyGem-multi_json = 1.7.x;
+            RubyGem-mocha = 0.13.2;
         };
     };
 
