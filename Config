@@ -29,16 +29,16 @@ package.Aws-codedeploy-agent = {
     };
     dependencies = {
         0.1 = {
-            ApolloControlServiceRubySDK = 1.0;
+            RubyGem-archive-tar-minitar = 0.5.2;
             RubyGem-aws-sdk-core = 2.x;
-            Ruby = 1.9;
             RubyGem-gli = 2.5;
             RubyGem-json_pure = 1.6.1;
+            RubyGem-logging = 1.8;
             RubyGem-rake = built_in_to_ruby19;
             RubyGem-rspec = 2.14.x;
-            RubyGem-archive-tar-minitar = 0.5.2;
             RubyGem-rubyzip = 1.1.x;
-            RazorbillHostAgentProcessManager = 0.0;
+            RubyGem-simple_pid = 0.2;
+            Ruby = 1.9;
         };
     };
 
