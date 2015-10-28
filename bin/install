@@ -327,10 +327,17 @@ EOF
   when 'help'
     usage
   when 'rpm'
-    #use -y to answer yes to confirmation prompts
-    install_cmd = ['/usr/bin/yum', '-y', 'localinstall']
-    install_from_s3(region, bucket, version_file_key, @type, install_cmd)
-    do_sanity_check('/sbin/service')
+    running_version = `rpm -q codedeploy-agent`
+    running_version.strip!
+    target_version = get_version_file_from_s3(region, bucket, version_file_key)['rpm']
+    if target_version.include? running_version
+      @log.info('Running version matches target version, skipping install')
+    else
+      #use -y to answer yes to confirmation prompts
+      install_cmd = ['/usr/bin/yum', '-y', 'localinstall']
+      install_from_s3(region, bucket, version_file_key, @type, install_cmd)
+      do_sanity_check('/sbin/service')
+    end
   when 'deb'
     running_agent = `dpkg -s codedeploy-agent`
     running_agent_info = running_agent.split
