@@ -10,7 +10,7 @@ require 'uri'
 module InstanceAgent
   module Plugins
     module CodeDeployPlugin
-      ARCHIEVES_TO_RETAIN = 5
+      ARCHIVES_TO_RETAIN = 5
 
       class CommandExecutor
         class << self
@@ -20,7 +20,6 @@ module InstanceAgent
         attr_reader :deployment_system
 
         InvalidCommandNameFailure = Class.new(Exception)
-        InvalidConfigException = Class.new(Exception)
 
         def initialize(options = {})
           @deployment_system = "CodeDeploy"
@@ -29,17 +28,18 @@ module InstanceAgent
             map
           end
           begin
-            if (ProcessManager::Config.config[:max_revisions] == nil)
-              @archieves_to_retain = ARCHIEVES_TO_RETAIN
-            elsif (Integer(ProcessManager::Config.config[:max_revisions]) < 0)
-              log(:error, "Invalid configuration :max_revision=#{ProcessManager::Config.config[:max_revisions]}")
-              raise InvalidConfigException.new("Invalid :max_revisions #{ProcessManager::Config.config[:max_revisions]}.")
+            max_revisions = ProcessManager::Config.config[:max_revisions]
+            if max_revisions.nil?
+              @archives_to_retain = ARCHIVES_TO_RETAIN
+            elsif Integer(max_revisions) < 0
+              log(:error, "Invalid configuration :max_revision=#{max_revisions}")
+              Process.kill('TERM', InstanceAgent::Runner::Master.status)
             else
-              @archieves_to_retain = Integer(ProcessManager::Config.config[:max_revisions])
+              @archives_to_retain = Integer(max_revisions)
             end
           rescue ArgumentError
-            log(:error, "Invalid configuration :max_revision=#{ProcessManager::Config.config[:max_revisions]}")
-            raise InvalidConfigException.new("Invalid :max_revisions #{ProcessManager::Config.config[:max_revisions]}.")
+            log(:error, "Invalid configuration :max_revision=#{max_revisions}")
+            Process.kill('TERM', InstanceAgent::Runner::Master.status)
           end
         end
 
@@ -347,7 +347,7 @@ module InstanceAgent
 
           full_path_deployment_archives = deployment_archives.map{ |f| File.join(ProcessManager::Config.config[:root_dir], deployment_group, f)}
           
-          extra = full_path_deployment_archives.size - @archieves_to_retain
+          extra = full_path_deployment_archives.size - @archives_to_retain
           return unless extra > 0
 
           # Never remove the last successful deployment
