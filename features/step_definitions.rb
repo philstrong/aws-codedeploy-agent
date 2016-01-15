@@ -135,7 +135,7 @@ end
 
 def start_and_tag_instance
   eventually(:upto => 60) do
-    keypair_name = AwsCredentials.instance.keypair_name.nil?? EC2_KEY_PAIR : AwsCredentials.instance.keypair_name
+  keypair_name = AwsCredentials.instance.keypair_name.nil?? EC2_KEY_PAIR : AwsCredentials.instance.keypair_name
     @instance_id = @ec2_client.run_instances({
       :image_id => AwsCredentials.instance.ec2_ami,
       :instance_type => "t2.micro",

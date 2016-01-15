@@ -10,21 +10,12 @@ module InstanceAgent
 
     def self.prepare_script_command(script, absolute_path)
       script_command = absolute_path
-      if(!script.runas.nil? && script.sudo.nil?)
+      if(!script.runas.nil?)
         script_command = 'su ' + script.runas + ' -c ' + absolute_path
-      elsif(script.runas.nil? && script.sudo.nil?)
-        script_command = 'sudo ' + script.runas + ' -c ' + absolute_path
-      elsif(!script.runas.nil? && !script.sudo.nil?)
-        script_command = 'sudo su ' + script.runas + ' -c ' + absolute_path
       end
       script_command
     end
     
-    def self.quit()
-      # Send kill signal to parent and exit
-      Process.kill('TERM', Process.ppid)
-    end
-
     def self.quit()
       # Send kill signal to parent and exit
       Process.kill('TERM', Process.ppid)
