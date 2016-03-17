@@ -1,5 +1,0 @@
-*.swp
-Gemfile.lock
-deployment/
-coverage/
-.version
