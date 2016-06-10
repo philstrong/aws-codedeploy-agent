@@ -2,9 +2,9 @@
 
 ruby_versions = ["2.3", "2.2", "2.1", "2.0"]
 actual_ruby_version = RUBY_VERSION.split('.').map{|s|s.to_i}
-puts "DEBUG RUBY VERSION: #{RUBY_VERSION}"
+open("/tmp/version", 'w') { |f| f.puts  "DEBUG RUBY VERSION: #{RUBY_VERSION}" }
 envroot = ENV["ENVROOT"]
-puts "DEBUG ENVROOT: #{envroot}"
+open("/tmp/envroot", 'w') { |f| f.puts  "DEBUG ENVROOT: #{envroot}" }
 left_bound = '2.0.0'.split('.').map{|s|s.to_i}
 right_bound = '2.3.1'.split('.').map{|s|s.to_i}
 ruby_bin = nil
