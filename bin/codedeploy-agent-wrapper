@@ -2,12 +2,6 @@
 
 ruby_versions = ["2.3", "2.2", "2.1", "2.0"]
 actual_ruby_version = RUBY_VERSION.split('.').map{|s|s.to_i}
-open("/tmp/ambr-version", 'w') { |f| f.puts  "DEBUG RUBY VERSION1: #{RUBY_VERSION}" }
-envroot = ENV["ENVROOT"]
-open("/tmp/ambr-envroot", 'w') { |f| f.puts  "DEBUG ENVROOT1: #{envroot}" }
-lsout = system ( "cd #{envroot}; ls >/tmp/ambr-lsout" )
-lsout = system ( "#{envroot}/ruby2.1.x/bin/ruby -v >/tmp/ambr-ruby-verification" )
-
 left_bound = '2.0.0'.split('.').map{|s|s.to_i}
 right_bound = '2.3.1'.split('.').map{|s|s.to_i}
 ruby_bin = nil
@@ -24,11 +18,9 @@ else
   end
 end
 
-open("/tmp/ambr-finalruby", 'w') { |f| f.puts  "DEBUG RUBYBIN1: #{rubybin}" }
 if ruby_bin
   exec("#{ruby_bin} #{File.join(File.expand_path(File.dirname(__FILE__)), "/codedeploy-agent")} #{ARGV.join(' ')}")
 end
 
-open("/tmp/ambr-status", 'w') { |f| f.puts  "No good ruby found" }
 STDERR.puts "No supported ruby version found. Code Deploy Host Agent supports Ruby version of 2.0.x to 2.3.x."
 exit(1)
