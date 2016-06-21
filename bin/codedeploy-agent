@@ -1,3 +1,5 @@
+#!/usr/bin/ruby2.0
+
 # 1.9 adds realpath to resolve symlinks; 1.8 doesn't
 # have this method, so we add it so we get resolved symlinks
 # and compatibility
@@ -14,7 +16,7 @@ end
 # This is required so that the agent can run without requiring an init script
 # if installed as a gem
 
-agent_dir = File.join(File.dirname(__FILE__), "..")
+agent_dir = "/opt/codedeploy-agent"
 $:.unshift "#{agent_dir}/lib"
 
 require 'instance_agent'
@@ -24,15 +26,9 @@ include GLI::App
 
 program_desc 'AWS CodeDeploy Agent'
 
-conf_default_dir = "/etc/codedeploy-agent/conf/codedeployagent.yml"
-conf_repo_dir = "#{agent_dir}/conf/codedeployagent.yml"
 desc 'Path to agent config file'
-if File.file?(conf_default_dir)
-  default_value conf_default_dir
-else
-  default_value conf_repo_dir
-end
-arg_name "conf_dir"
+default_value '/etc/codedeploy-agent/conf/codedeployagent.yml'
+arg_name '/etc/codedeploy-agent/conf/codedeployagent.yml'
 flag [:config_file,:config_file]
 
 desc 'start the AWS CodeDeploy agent'
