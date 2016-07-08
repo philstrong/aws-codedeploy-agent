@@ -66,6 +66,7 @@ package.Aws-codedeploy-agent = {
             RubyGem-rake = built_in_to_ruby19;
             RubyGem-multi_json = 1.7.x;
             RubyGem-mocha = 0.13.2;
+            RubyGem-json_pure = 1.6.1;
         };
     };
 
