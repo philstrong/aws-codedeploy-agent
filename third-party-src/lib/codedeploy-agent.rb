@@ -14,7 +14,7 @@ end
 # This is required so that the agent can run without requiring an init script
 # if installed as a gem
 
-agent_dir = File.join(File.dirname(__FILE__), "..")
+agent_dir = "/opt/codedeploy-agent" 
 $:.unshift "#{agent_dir}/lib"
 
 require 'instance_agent'
