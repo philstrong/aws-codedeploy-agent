@@ -19,10 +19,10 @@ class InstanceMetadataTest < InstanceAgentTestCase
       @instance_document = JSON.dump({"accountId" => account_id, "region" => region, "instanceId" => instance_id})
       @http = mock()
       @response = mock()
-      @response2 = mock()
+      @instance_doc_response = mock()
       @response.stubs(:code).returns("200")
-      @response2.stubs(:code).returns("200")
-      @http.stubs(:get).returns(@response, @response2)
+      @instance_doc_response.stubs(:code).returns("200")
+      @http.stubs(:get).returns(@response, @instance_doc_response)
       Net::HTTP.stubs(:start).yields(@http)
     end
 
@@ -30,7 +30,7 @@ class InstanceMetadataTest < InstanceAgentTestCase
 
       setup do
         @response.stubs(:body).returns("us-east-1a")
-        @response2.stubs(:body).returns(@instance_document)
+        @instance_doc_response.stubs(:body).returns(@instance_document)
       end
 
       should 'connect to the right host' do
@@ -41,7 +41,7 @@ class InstanceMetadataTest < InstanceAgentTestCase
       should 'call the correct URL' do
         @http.expects(:get).
           with("/latest/dynamic/instance-identity/document").
-          returns(@response2)
+          returns(@instance_doc_response)
         InstanceMetadata.host_identifier
       end
 
@@ -50,7 +50,7 @@ class InstanceMetadataTest < InstanceAgentTestCase
       end
 
       should 'strip whitesace in the body' do
-        @response2.stubs(:body).returns(" \t#{@instance_document}   ")
+        @instance_doc_response.stubs(:body).returns(" \t#{@instance_document}   ")
         assert_equal(@host_identifier, InstanceMetadata.host_identifier)
       end
 
