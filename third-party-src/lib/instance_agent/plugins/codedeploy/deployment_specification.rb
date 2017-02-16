@@ -138,7 +138,7 @@ module InstanceAgent
             if (@@region.split("-")[0] == "cn")
               cert.subject.to_s == "/C=CN/ST=Beijing/L=Beijing/O=Amazon Connect Technology Services (Beijing) Co., Ltd./CN=codedeploy-signer-"+@@region+".amazonaws.com.cn"
             else
-            cert.subject.to_s == "/C=US/ST=Washington/L=Seattle/O=Amazon.com, Inc./CN=codedeploy-signer-"+@@region+".amazonaws.com"
+              cert.subject.to_s == "/C=US/ST=Washington/L=Seattle/O=Amazon.com, Inc./CN=codedeploy-signer-"+@@region+".amazonaws.com"
             end
           else
             raise "Unknown profile '#{Config.config()[:codedeploy_test_profile]}'"
