@@ -1,3 +1,6 @@
+require 'instance_agent/plugins/codedeploy/application_specification/script_info'
+require 'instance_agent/plugins/codedeploy/application_specification/file_info'
+
 module InstanceAgent
   module Plugins
     module CodeDeployPlugin

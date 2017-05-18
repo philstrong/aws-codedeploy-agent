@@ -57,6 +57,14 @@ class DeploymentSpecificationTest < InstanceAgentTestCase
         assert_equal @deployment_creator, parsed_deployment_spec.deployment_creator
         assert_equal @deployment_type, parsed_deployment_spec.deployment_type
       end
+
+      should "populate the all_possible_lifecycle_events field if present" do
+        deployment_spec_with_all_possible_lifecycle_events = @deployment_spec.clone
+        all_possible_lifecycle_events = ['ExampleLifecycleEvent', 'SecondLifecycleEvent']
+        deployment_spec_with_all_possible_lifecycle_events['AllPossibleLifecycleEvents'] = all_possible_lifecycle_events
+        parsed_deployment_spec = InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(generate_signed_message_for(deployment_spec_with_all_possible_lifecycle_events))
+        assert_equal all_possible_lifecycle_events, parsed_deployment_spec.all_possible_lifecycle_events
+      end
     end
 
     context "with arn deployment id" do
@@ -431,6 +439,118 @@ class DeploymentSpecificationTest < InstanceAgentTestCase
         assert_raised_with_message("Could not parse the PKCS7: nested asn1 error") do
           begin
             InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(@packed_message)
+          rescue ArgumentError => e
+            raise e.message
+          end
+        end
+      end
+    end
+
+    context "with Local Revision" do
+      setup do
+        @local_file_revision = {
+          "Location" => "/local/file.tgz",
+          "BundleType" => "zip"
+        }
+        @local_revision = {
+          "RevisionType" => "Local File",
+          "LocalRevision" => @local_file_revision
+        }
+        @deployment_local_revision_spec = {
+          "ApplicationName" => @application_name,
+          "DeploymentId" => @deployment_id,
+          "DeploymentGroupName" => @deployment_group_name,
+          "DeploymentGroupId" => @deployment_group_id,
+          "DeploymentCreator" => @deployment_creator,
+          "DeploymentType" => @deployment_type,
+          "AgentActionOverrides" => @agent_actions_overrides,
+          "Revision" => @local_revision
+        }
+
+        @packed_local_revision_message = generate_signed_message_for(@deployment_local_revision_spec)
+        InstanceAgent::Config.init
+      end
+
+      should "parse correctly" do
+        @packed_local_revision_message = generate_signed_message_for(@deployment_local_revision_spec)
+        parsed_deployment_local_revision_spec = InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(@packed_local_revision_message)
+        assert_equal @local_file_revision, parsed_deployment_local_revision_spec.revision
+      end
+
+      should "raise when Location is missing" do
+        @local_file_revision = {
+          "BundleType" => "tgz"
+        }
+        @local_revision = {
+          "RevisionType" => "Local File",
+          "LocalRevision" => @local_file_revision
+        }
+        @deployment_local_revision_spec = {
+          "DeploymentId" => @deployment_id,
+          "DeploymentGroupId" => @deployment_group_id,
+          "Revision" => @local_revision,
+          "DeploymentGroupName" => @deployment_group_name,
+          "ApplicationName" => @application_name
+        }
+        @packed_local_revision_message = generate_signed_message_for(@deployment_local_revision_spec)
+
+        assert_raised_with_message("LocalRevision in Deployment Spec must specify Location and BundleType") do
+          InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(@packed_local_revision_message)
+        end
+      end
+
+      should "raise when BundleType is missing" do
+        @local_file_revision = {
+          "Location" => "/local/file.tgz",
+        }
+        @local_revision = {
+          "RevisionType" => "Local File",
+          "LocalRevision" => @local_file_revision
+        }
+        @deployment_local_revision_spec = {
+          "DeploymentId" => @deployment_id,
+          "DeploymentGroupId" => @deployment_group_id,
+          "Revision" => @local_revision,
+          "DeploymentGroupName" => @deployment_group_name,
+          "ApplicationName" => @application_name
+        }
+        @packed_local_revision_message = generate_signed_message_for(@deployment_local_revision_spec)
+
+        assert_raised_with_message("LocalRevision in Deployment Spec must specify Location and BundleType") do
+          InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(@packed_local_revision_message)
+        end
+      end
+
+      #"Revision" => { "RevisionType" => revision_type(location, bundle_type), "LocalRevision" => {"Location" => location, "BundleType" => bundle_type}},
+      should "raise when bundle type is not a supported format" do
+        @local_file_revision = {
+          "Location" => "/local/file.tgz",
+          "BundleType" => "bar"
+        }
+        @local_revision = {
+          "RevisionType" => "Local File",
+          "LocalRevision" => @local_file_revision
+        }
+        @deployment_local_revision_spec = {
+          "DeploymentId" => @deployment_id,
+          "DeploymentGroupId" => @deployment_group_id,
+          "Revision" => @local_revision,
+          "DeploymentGroupName" => @deployment_group_name,
+          "ApplicationName" => @application_name
+        }
+        @packed_local_revision_message = generate_signed_message_for(@deployment_local_revision_spec)
+
+        assert_raised_with_message("BundleType in LocalRevision must be tar, tgz, zip, or directory") do
+          InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(@packed_local_revision_message)
+        end
+      end
+
+      should "raise when JSON submitted as PKCS7/JSON" do
+        @packed_local_revision_message.payload = @deployment_local_revision_spec.to_json
+
+        assert_raised_with_message("Could not parse the PKCS7: nested asn1 error") do
+          begin
+            InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(@packed_local_revision_message)
           rescue ArgumentError => e
             raise e.message
           end

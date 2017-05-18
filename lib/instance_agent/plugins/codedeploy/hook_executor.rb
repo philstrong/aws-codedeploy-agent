@@ -3,10 +3,14 @@ require 'open3'
 require 'json'
 require 'fileutils'
 
+require 'instance_agent/plugins/codedeploy/application_specification/application_specification'
+
 module InstanceAgent
   module Plugins
     module CodeDeployPlugin
       class ScriptLog
+        SCRIPT_LOG_FILE_RELATIVE_LOCATION = 'logs/scripts.log'
+
         attr_reader :log
         def append_to_log(log_entry)
           log_entry ||= ""
@@ -115,6 +119,11 @@ module InstanceAgent
                   execute_script(script, script_log_file)
                 rescue Timeout::Error
                   raise ScriptError.new(ScriptError::SCRIPT_TIMED_OUT_CODE, script.location, @script_log), 'Script at specified location: ' +script.location + ' failed to complete in '+script.timeout.to_s+' seconds'
+                rescue ScriptError
+                  raise
+                rescue StandardError => e
+                  script_error = "#{script_error_prefix(script.location, script.runas)} failed with error #{e.class} with message #{e}"
+                  raise ScriptError.new(ScriptError::SCRIPT_FAILED_CODE, script.location, @script_log), script_error
                 end
               end
             end
@@ -151,17 +160,24 @@ module InstanceAgent
             exit_status = wait_thr.value.exitstatus
           end
           if(exit_status != 0)
-            script_error = 'Script at specified location: ' + script.location + ' failed with exit code ' + exit_status.to_s
-            if(!script.runas.nil?)
-              script_error = 'Script at specified location: ' + script.location + ' run as user ' + script.runas + ' failed with exit code ' + exit_status.to_s
-            end
+            script_error = "#{script_error_prefix(script.location, script.runas)} failed with exit code #{exit_status.to_s}"
             raise ScriptError.new(ScriptError::SCRIPT_FAILED_CODE, script.location, @script_log), script_error
           end
         end
 
         private
+        def script_error_prefix(script_location, script_run_as_user)
+          script_error_prefix = 'Script at specified location: ' + script_location
+          if(!script_run_as_user.nil?)
+            script_error_prefix = 'Script at specified location: ' + script_location + ' run as user ' + script_run_as_user
+          end
+
+          script_error_prefix
+        end
+
+        private
         def create_script_log_file_if_needed
-          script_log_file_location = File.join(@current_deployment_root_dir, 'logs/scripts.log')
+          script_log_file_location = File.join(@current_deployment_root_dir, ScriptLog::SCRIPT_LOG_FILE_RELATIVE_LOCATION)
           if(!File.exists?(script_log_file_location))
             unless File.directory?(File.dirname(script_log_file_location))
               FileUtils.mkdir_p(File.dirname(script_log_file_location))
@@ -184,7 +200,7 @@ module InstanceAgent
         def parse_app_spec
           app_spec_location = File.join(@deployment_archive_dir, @app_spec_path)
           log(:debug, "Checking for app spec in #{app_spec_location}")
-          @app_spec =  ApplicationSpecification::ApplicationSpecification.parse(File.read(app_spec_location))
+          @app_spec =  InstanceAgent::Plugins::CodeDeployPlugin::ApplicationSpecification::ApplicationSpecification.parse(File.read(app_spec_location))
         end
 
         private

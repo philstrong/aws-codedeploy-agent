@@ -10,6 +10,7 @@ module InstanceAgent
         attr_accessor :bucket, :key, :bundle_type, :version, :etag
         attr_accessor :external_account, :repository, :commit_id, :anonymous, :external_auth_token
         attr_accessor :file_exists_behavior
+        attr_accessor :local_location, :all_possible_lifecycle_events
         class << self
           attr_accessor :cert_store
         end
@@ -59,6 +60,10 @@ module InstanceAgent
             end
           end
 
+          if property_set?(data, 'AllPossibleLifecycleEvents')
+            @all_possible_lifecycle_events = data['AllPossibleLifecycleEvents']
+          end
+
           case @revision_source
           when 'S3'
             @revision = data["Revision"]["S3Revision"]
@@ -78,8 +83,15 @@ module InstanceAgent
             @commit_id = revision["CommitId"]
             @external_auth_token = data["GitHubAccessToken"]
             @anonymous = @external_auth_token.nil?
+          when 'Local File', 'Local Directory'
+            @revision = data["Revision"]["LocalRevision"]
+            raise 'LocalRevision in Deployment Spec must specify Location and BundleType' unless valid_local_revision?(revision)
+            raise 'BundleType in LocalRevision must be tar, tgz, zip, or directory' unless valid_local_bundle_type?(@revision)
+
+            @local_location = @revision["Location"]
+            @bundle_type = @revision["BundleType"]
           else
-            raise 'Exactly one of S3Revision or GitHubRevision must be specified'
+            raise 'Exactly one of S3Revision, GitHubRevision, or LocalRevision must be specified'
           end
         end
 
@@ -105,19 +117,25 @@ module InstanceAgent
             raise "Validation of PKCS7 signed message failed" unless signer_certs.size == 1
             raise "Validation of PKCS7 signed message failed" unless verify_pkcs7_signer_cert(signer_certs[0])
 
-            deployment_spec = JSON.parse(pkcs7.data)
-
-            sanitized_spec = deployment_spec.clone
-            sanitized_spec["GitHubAccessToken"] &&= "REDACTED"
-            InstanceAgent::Log.debug("#{self.to_s}: Parse: #{sanitized_spec}")
-
-            return new(deployment_spec)
+            parse_deployment_spec_data(pkcs7.data)
+          when "TEXT/JSON"
+            parse_deployment_spec_data(envelope.payload)
           else
             raise "Unsupported DeploymentSpecification format: #{envelope.format}"
           end
         end
 
         private
+        def self.parse_deployment_spec_data(deployment_spec_data)
+            deployment_spec = JSON.parse(deployment_spec_data)
+
+            sanitized_spec = deployment_spec.clone
+            sanitized_spec["GitHubAccessToken"] &&= "REDACTED"
+            InstanceAgent::Log.debug("#{self.to_s}: Parse: #{sanitized_spec}")
+
+            new(deployment_spec)
+        end
+
         def property_set?(propertyHash, property)
           propertyHash.has_key?(property) && !propertyHash[property].nil? && !propertyHash[property].empty?
         end
@@ -134,9 +152,17 @@ module InstanceAgent
           revision.nil? || required_fields.all? { |k| revision.has_key?(k) }
         end
 
+        def valid_local_revision?(revision)
+          revision.nil? || %w(Location BundleType).all? { |k| revision.has_key?(k) }
+        end
+
         private
         def valid_bundle_type?(revision)
           revision.nil? || %w(tar zip tgz).any? { |k| revision["BundleType"] == k }
+        end
+
+        def valid_local_bundle_type?(revision)
+          revision.nil? || %w(tar zip tgz directory).any? { |k| revision["BundleType"] == k }
         end
 
         def self.verify_pkcs7_signer_cert(cert)

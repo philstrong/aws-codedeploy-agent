@@ -6,6 +6,11 @@ require 'zip'
 require 'instance_metadata'
 require 'open-uri'
 require 'uri'
+require 'set'
+
+require 'instance_agent/plugins/codedeploy/deployment_specification'
+require 'instance_agent/plugins/codedeploy/hook_executor'
+require 'instance_agent/plugins/codedeploy/installer'
 
 module InstanceAgent
   module Plugins
@@ -52,7 +57,7 @@ module InstanceAgent
           method_name = command_method(command.command_name)
           log(:debug, "Command #{command.command_name} maps to method #{method_name}")
 
-          deployment_specification = DeploymentSpecification.parse(deployment_specification)
+          deployment_specification = InstanceAgent::Plugins::CodeDeployPlugin::DeploymentSpecification.parse(deployment_specification)
           log(:debug, "Successfully parsed the deployment spec")
 
           log(:debug, "Creating deployment root directory #{deployment_root_dir(deployment_specification)}")
@@ -87,15 +92,25 @@ module InstanceAgent
             deployment_spec.commit_id,
             deployment_spec.anonymous,
             deployment_spec.external_auth_token)
+          when 'Local File'
+            handle_local_file(
+              deployment_spec,
+              deployment_spec.local_location)
+          when 'Local Directory'
+            handle_local_directory(
+              deployment_spec,
+              deployment_spec.local_location)
           else
             # This should never happen since this is checked during creation of the deployment_spec object.
             raise "Unknown revision type '#{deployment_spec.revision_source}'"
           end
 
-          FileUtils.rm_rf(File.join(deployment_root_dir(deployment_spec), 'deployment-archive'))
-          bundle_file = artifact_bundle(deployment_spec)
+          if deployment_spec.bundle_type != 'directory'
+            FileUtils.rm_rf(File.join(deployment_root_dir(deployment_spec), 'deployment-archive'))
+            bundle_file = artifact_bundle(deployment_spec)
 
-          unpack_bundle(cmd, bundle_file, deployment_spec)
+            unpack_bundle(cmd, bundle_file, deployment_spec)
+          end
 
           FileUtils.mkdir_p(deployment_instructions_dir)
           log(:debug, "Instructions directory created at #{deployment_instructions_dir}")
@@ -111,7 +126,7 @@ module InstanceAgent
             log(:debug, "Instructions directory created at #{deployment_instructions_dir}")
           end
 
-          installer = Installer.new(:deployment_instructions_dir => deployment_instructions_dir,
+          installer = InstanceAgent::Plugins::CodeDeployPlugin::Installer.new(:deployment_instructions_dir => deployment_instructions_dir,
           :deployment_archive_dir => archive_root_dir(deployment_spec),
           :file_exists_behavior => deployment_spec.file_exists_behavior)
 
@@ -126,7 +141,7 @@ module InstanceAgent
           @hook_mapping.each_pair do |command, lifecycle_events|
             InstanceAgent::Plugins::CodeDeployPlugin::CommandExecutor.command command do |cmd, deployment_spec|
               #run the scripts
-              script_log = ScriptLog.new
+              script_log = InstanceAgent::Plugins::CodeDeployPlugin::ScriptLog.new
               lifecycle_events.each do |lifecycle_event|
                 hook_command = HookExecutor.new(:lifecycle_event => lifecycle_event,
                 :application_name => deployment_spec.application_name,
@@ -183,7 +198,20 @@ module InstanceAgent
         def default_app_spec(deployment_spec)
           default_app_spec_location = File.join(archive_root_dir(deployment_spec), app_spec_path)
           log(:debug, "Checking for app spec in #{default_app_spec_location}")
-          app_spec =  ApplicationSpecification::ApplicationSpecification.parse(File.read(default_app_spec_location))
+          validate_app_spec_hooks(ApplicationSpecification::ApplicationSpecification.parse(File.read(default_app_spec_location)), deployment_spec.all_possible_lifecycle_events)
+        end
+
+        private
+        def validate_app_spec_hooks(app_spec, all_possible_lifecycle_events)
+          unless all_possible_lifecycle_events.nil?
+            app_spec_hooks_plus_hooks_from_mapping = app_spec.hooks.keys.to_set.merge(@hook_mapping.keys).to_a
+            unless app_spec_hooks_plus_hooks_from_mapping.to_set.subset?(all_possible_lifecycle_events.to_set)
+              unknown_lifecycle_events = app_spec_hooks_plus_hooks_from_mapping - all_possible_lifecycle_events
+              raise ArgumentError.new("appspec.yml file contains unknown lifecycle events: #{unknown_lifecycle_events}")
+            end
+          end
+
+          app_spec
         end
 
         private
@@ -200,7 +228,7 @@ module InstanceAgent
         def download_from_s3(deployment_spec, bucket, key, version, etag)
           log(:debug, "Downloading artifact bundle from bucket '#{bucket}' and key '#{key}', version '#{version}', etag '#{etag}'")
           region = ENV['AWS_REGION'] || InstanceMetadata.region
-          
+
           proxy_uri = nil
           if InstanceAgent::Config.config[:proxy_uri]
             proxy_uri = URI(InstanceAgent::Config.config[:proxy_uri])
@@ -295,6 +323,25 @@ module InstanceAgent
               raise "Could not download bundle at '#{uri.to_s}' after #{retries} retries. Server returned codes: #{errors.join("; ")}."
             end
           end
+        end
+
+        private
+        def handle_local_file(deployment_spec, local_location)
+          # Symlink local file to the location where download is expected to go
+          bundle_file = artifact_bundle(deployment_spec)
+          begin
+            File.symlink local_location, bundle_file
+          rescue
+            #Symlinking fails on windows, copying recursively instead
+            FileUtils.cp_r local_location, bundle_file
+          end
+        end
+
+        private
+        def handle_local_directory(deployment_spec, local_location)
+          # Copy local directory to the location where a file would have been extracted
+          # We copy instead of symlinking in order to preserve revision history
+          FileUtils.cp_r local_location, archive_root_dir(deployment_spec)
         end
 
         private

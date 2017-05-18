@@ -178,6 +178,33 @@ class CodeDeployPluginCommandExecutorTest < InstanceAgentTestCase
           @command_executor.execute_command(@command, @deployment_spec)
         end
 
+        should 'raise ArgumentError if appspec contains unknown hook and deployment_spec includes all_possible_lifecycle_events' do
+          all_possible_lifecycle_events = ['ExampleLifecycleEvent', 'SecondLifecycleEvent']
+          deployment_spec = generate_signed_message_for({
+            "DeploymentId" => @deployment_id.to_s,
+            "DeploymentGroupId" => @deployment_group_id,
+            "ApplicationName" => @application_name,
+            "DeploymentGroupName" => @deployment_group_name,
+            "DeploymentCreator" => @deployment_creator,
+            "DeploymentType" => @deployment_type,
+            "AgentActionOverrides" => @agent_actions_overrides,
+            "AllPossibleLifecycleEvents" => all_possible_lifecycle_events,
+            "Revision" => {
+              "RevisionType" => "S3",
+              "S3Revision" => @s3Revision
+            }
+          })
+
+          app_spec = mock("parsed application specification")
+          app_spec_hooks = {'UnknownHook' => nil}
+          app_spec.expects(:hooks).returns(app_spec_hooks)
+          File.stubs(:read).with("#@archive_root_dir/appspec.yml").returns("APP SPEC")
+          ApplicationSpecification::ApplicationSpecification.stubs(:parse).with("APP SPEC").returns(app_spec)
+          unknown_hooks = app_spec_hooks.merge(@test_hook_mapping)
+          assert_raised_with_message("appspec.yml file contains unknown lifecycle events: #{unknown_hooks.keys}", ArgumentError) do
+            @command_executor.execute_command(@command, deployment_spec)
+          end
+        end
       end
 
       context "when executing the DownloadBundle command" do
@@ -347,6 +374,66 @@ class CodeDeployPluginCommandExecutorTest < InstanceAgentTestCase
             @command_executor.execute_command(@command, @deployment_spec)
           end
 
+        end
+
+        context "extract bundle from local file" do
+          setup do
+            InstanceAgent::LinuxUtil.stubs(:extract_tgz)
+            @command.command_name = "DownloadBundle"
+            @mock_file = mock
+            @mock_file_location = '/mock/file/location.tgz'
+            File.stubs(:symlink)
+            Dir.stubs(:entries).returns []
+            @mock_file.stubs(:close)
+
+            @deployment_spec = generate_signed_message_for({
+              "DeploymentId" => @deployment_id.to_s,
+              "DeploymentGroupId" => @deployment_group_id.to_s,
+              "ApplicationName" => @application_name,
+              "DeploymentGroupName" => @deployment_group_name,
+              "Revision" => {
+                "RevisionType" => "Local File",
+                "LocalRevision" => {
+                  "Location" => @mock_file_location,
+                  "BundleType" => 'tgz'
+                }
+              }
+            })
+          end
+
+          should 'symlink the file to the bundle location' do
+            File.expects(:symlink).with(@mock_file_location, File.join(@deployment_root_dir, 'bundle.tar'))
+            @command_executor.execute_command(@command, @deployment_spec)
+          end
+        end
+
+        context "handle bundle from local directory" do
+          setup do
+            @command.command_name = "DownloadBundle"
+            @mock_directory_location = '/mock/directory/location/'
+            FileUtils.stubs(:cp_r)
+            Dir.stubs(:entries).returns []
+            @mock_file.stubs(:close)
+
+            @deployment_spec = generate_signed_message_for({
+              "DeploymentId" => @deployment_id.to_s,
+              "DeploymentGroupId" => @deployment_group_id.to_s,
+              "ApplicationName" => @application_name,
+              "DeploymentGroupName" => @deployment_group_name,
+              "Revision" => {
+                "RevisionType" => "Local Directory",
+                "LocalRevision" => {
+                  "Location" => @mock_directory_location,
+                  "BundleType" => 'directory'
+                }
+              }
+            })
+          end
+
+          should 'copy recursively the directory to the bundle location' do
+            FileUtils.expects(:cp_r).with(@mock_directory_location, @archive_root_dir)
+            @command_executor.execute_command(@command, @deployment_spec)
+          end
         end
 
         should "unpack the bundle to the right directory" do
