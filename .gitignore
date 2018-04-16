@@ -5,3 +5,5 @@ Gemfile.lock
 codedeploy-local.log*
 codedeploy-local.*.log
 deployment/
+.idea/
+.DS_STORE
