@@ -1,12 +1,21 @@
-# -*-perl-*-
+# Use following to update Agent version (https://guides.rubygems.org/patterns/#semantic-versioning)
+#
+# PATCH 0.0.x level changes for implementation level detail changes, such as small bug fixes
+# MINOR 0.x.0 level changes for any backwards compatible API changes, such as new functionality/features
+# MAJOR x.0.0 level changes for backwards incompatible API changes, such as changes that will break existing users code
+
+# You should update:
+# - codedeploy_agent.gemspec
+# - thirdPartyVersion
+# - interfaces = (x.x.x)
 package.Aws-codedeploy-agent = {
-    interfaces = (0.1);
+    interfaces = (1.1.x);
     scope = third-party;
 
     third-party-configuration = {
       # This is important, please do not remove it.
       thirdPartyName       = "aws-codedeploy-agent";
-      thirdPartyVersion    = "0.1";
+      thirdPartyVersion    = "1.1.0";
       licenseType          = "Apache v2.0";
       licenseFile          = "Unknown";
       repository           = "raw";
@@ -20,14 +29,14 @@ package.Aws-codedeploy-agent = {
     };
 
     build-tools = {
-        0.1 = {
+        1.1.x = {
             BrazilGem = 1.1;
             BrazilRake = 1.2;
             Ruby21x = 1.0;
         };
     };
     dependencies = {
-        0.1 = {
+        1.1.x = {
             RubyGem-archive-tar-minitar = 0.5.2;
             RubyGem-aws-sdk-core = 2.x;
             RubyGem-gli = 2.11.x;
@@ -45,7 +54,7 @@ package.Aws-codedeploy-agent = {
 
     # Adding test dependencies declared in gemspec
     test-dependencies = {
-        0.1 = {
+        1.1.x = {
             RubyGem-test-unit = 2.5.5;
             RubyGem-shoulda = 3.4;
             RubyGem-shoulda-matchers = 1.5;
@@ -59,7 +68,7 @@ package.Aws-codedeploy-agent = {
     };
 
     resolves-conflict-dependencies = {
-        0.1 = {
+        1.1.x = {
             RubyGem-multi_json = 1.10.x;
             RubyGem-mocha = 0.13.3;
             RubyGem-json_pure = 1.6.1;
