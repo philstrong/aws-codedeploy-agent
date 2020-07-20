@@ -45,11 +45,11 @@ package.Aws-codedeploy-agent = {
             RubyGem-json_pure = 1.6.1;
             RubyGem-logging = 1.8.x;
             RubyGem-rspec = 3.2.x;
-            RubyGem-rubyzip = 1.1.x;
+            RubyGem-rubyzip = 1.3.x;
             RubyGem-simple_pid = 0.2;
             RubyGem-docopt = 0.5.x;
             RubyGem-bundler = 1.3.x_AMZN;
-            RubyGem-rake = 10.4.x;
+            RubyGem-rake = 12.3.x;
             RubyGem-concurrent-ruby = 1.0.x;
         };
     };
