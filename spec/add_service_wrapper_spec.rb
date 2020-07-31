@@ -9,7 +9,7 @@ RSpec.describe 'add_service_wrapper' do
   # https://code.amazon.com/packages/AwsSdkRubyCodeGenWrapper/blobs/mainline/--/spec/add_service_wrapper_spec.rb
   describe '#add_service' do
     before(:all) do
-      @service_file = File.expand_path('../fixtures/sample_service.json', __FILE__)
+      @service_file = File.expand_path('../../vendor/gems/codedeploy-commands-1.0.0/apis/CodeDeployCommand.api.json', __FILE__)
       @api = JSON.parse(File.read(@service_file))
       @svc_class = Aws.add_service('GeneratedService', api: @api)
     end
