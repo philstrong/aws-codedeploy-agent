@@ -9,13 +9,13 @@
 # - thirdPartyVersion
 # - interfaces = (x.x.x)
 package.Aws-codedeploy-agent = {
-    interfaces = (1.1.x);
+    interfaces = (1.2.x);
     scope = third-party;
 
     third-party-configuration = {
       # This is important, please do not remove it.
       thirdPartyName       = "aws-codedeploy-agent";
-      thirdPartyVersion    = "1.2.0";
+      thirdPartyVersion    = "1.2.1";
       licenseType          = "Apache v2.0";
       licenseFile          = "Unknown";
       repository           = "raw";
@@ -29,14 +29,14 @@ package.Aws-codedeploy-agent = {
     };
 
     build-tools = {
-        1.1.x = {
+        1.2.x = {
             BrazilGem = 1.1;
             BrazilRake = 1.2;
             Ruby21x = 1.0;
         };
     };
     dependencies = {
-        1.1.x = {
+        1.2.x = {
             RubyGem-archive-tar-minitar = 0.5.2;
             RubyGem-aws-sdk-core = 3.x;
             RubyGem-aws-sdk-code-generator = 0.x;
@@ -56,7 +56,7 @@ package.Aws-codedeploy-agent = {
 
     # Adding test dependencies declared in gemspec
     test-dependencies = {
-        1.1.x = {
+        1.2.x = {
             RubyGem-test-unit = 2.5.5;
             RubyGem-shoulda = 3.4;
             RubyGem-shoulda-matchers = 1.5;
@@ -71,7 +71,7 @@ package.Aws-codedeploy-agent = {
     };
 
     resolves-conflict-dependencies = {
-        1.1.x = {
+        1.2.x = {
             RubyGem-multi_json = 1.10.x;
             RubyGem-mocha = 0.13.3;
             RubyGem-json_pure = 1.6.1;
