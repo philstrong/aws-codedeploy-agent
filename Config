@@ -15,7 +15,7 @@ package.Aws-codedeploy-agent = {
     third-party-configuration = {
       # This is important, please do not remove it.
       thirdPartyName       = "aws-codedeploy-agent";
-      thirdPartyVersion    = "1.3.1";
+      thirdPartyVersion    = "1.3.2";
       licenseType          = "Apache v2.0";
       licenseFile          = "Unknown";
       repository           = "raw";
